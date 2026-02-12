@@ -1,0 +1,27 @@
+{
+  "name": "solana-token-workshop",
+  "version": "1.0.0",
+  "description": "Solana token workshop script using @solana/web3.js and @solana/spl-token with TypeScript",
+  "main": "solana-token-transfer.ts",
+  "scripts": {
+    "start": "npx ts-node solana-token-transfer.ts"
+  },
+  "keywords": [
+    "solana",
+    "web3",
+    "spl-token",
+    "typescript",
+    "workshop"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@solana/spl-token": "^0.4.8",
+    "@solana/web3.js": "^1.95.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  }
+}
