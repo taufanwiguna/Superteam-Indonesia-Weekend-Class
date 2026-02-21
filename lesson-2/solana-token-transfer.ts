@@ -1,11 +1,8 @@
 /**
- * Solana Token Workshop - Using @solana/web3.js
- * Educational script demonstrating token operations with standard Solana libraries
- * 
- * Prerequisites:
- * - Install dependencies: npm install @solana/web3.js @solana/spl-token
- * - Set up two wallets (A and B) with some SOL for transaction fees
- * - This uses the standard Solana JavaScript SDK
+ * Solana Token Workshop - Lesson 2
+ * Demonstrasi pembuatan dan pengelolaan SPL Token di Solana Devnet
+ *
+ * Jalankan: npm start
  */
 
 import {
@@ -24,313 +21,224 @@ import {
   burn,
   setAuthority,
   AuthorityType,
-  getMint,
   getAccount,
 } from '@solana/spl-token';
 
 // ============================================================================
-// CONFIGURATION
+// KONFIGURASI
 // ============================================================================
 
-// Connect to Solana Devnet (testnet for development)
+// Hubungkan ke Solana Devnet — jaringan uji gratis, bukan mainnet
 const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 
-// Token configuration
-const TOKEN_DECIMALS = 9; // Standard for Solana tokens (like SOL)
-const MINT_AMOUNT = 1000; // Number of tokens to mint
-const TRANSFER_AMOUNT = 50; // Number of tokens to transfer
-const BURN_AMOUNT = 100; // Number of tokens to burn
+const TOKEN_DECIMALS = 9;   // Presisi token: 9 desimal seperti SOL
+const MINT_AMOUNT = 1000;   // Jumlah token yang dicetak
+const TRANSFER_AMOUNT = 50; // Jumlah token yang ditransfer ke Wallet B
+const BURN_AMOUNT = 100;    // Jumlah token yang dibakar dari Wallet A
 
 // ============================================================================
-// HELPER FUNCTIONS
+// FUNGSI HELPER
 // ============================================================================
 
 /**
- * Request SOL airdrop for a wallet (Devnet only)
+ * Cek dan tampilkan saldo SOL sebuah wallet.
+ * Saldo di Solana disimpan dalam "lamports" (satuan terkecil).
+ * 1 SOL = 1.000.000.000 lamports — mirip seperti 1 rupiah = 100 sen.
  */
-async function requestAirdrop(publicKey: PublicKey, amount: number): Promise<void> {
-  console.log(`  Requesting ${amount} SOL airdrop...`);
-  const signature = await connection.requestAirdrop(
-    publicKey,
-    amount * LAMPORTS_PER_SOL
-  );
-
-  // Wait for confirmation
-  await connection.confirmTransaction(signature);
-  console.log(`  ✓ Airdrop confirmed`);
-}
-
-/**
- * Check SOL balance of a wallet
- */
-async function checkBalance(publicKey: PublicKey, label: string): Promise<number> {
+async function checkSolBalance(publicKey: PublicKey, label: string): Promise<void> {
   const balance = await connection.getBalance(publicKey);
   const sol = balance / LAMPORTS_PER_SOL;
   console.log(`  ${label}: ${sol.toFixed(4)} SOL`);
-  return sol;
 }
 
 /**
- * Get token balance for a wallet
+ * Cek dan tampilkan saldo token dari sebuah Associated Token Account.
+ * Amount disimpan dalam unit terkecil, jadi kita bagi dengan 10^TOKEN_DECIMALS
+ * untuk mendapatkan jumlah token yang sebenarnya.
  */
-async function getTokenBalance(tokenAccount: PublicKey): Promise<number> {
-  try {
-    const accountInfo = await getAccount(connection, tokenAccount);
-    return Number(accountInfo.amount) / Math.pow(10, TOKEN_DECIMALS);
-  } catch (error) {
-    return 0;
-  }
+async function checkTokenBalance(tokenAccount: PublicKey): Promise<void> {
+  const accountInfo = await getAccount(connection, tokenAccount);
+  const balance = Number(accountInfo.amount) / Math.pow(10, TOKEN_DECIMALS);
+  console.log(`  ${tokenAccount.toBase58().slice(0, 8)}...: ${balance} token`);
 }
 
 // ============================================================================
-// STEP 1: CREATE AND FUND WALLETS
-// ============================================================================
-
-async function step1_CreateWallets() {
-  console.log('\n========================================');
-  console.log('STEP 1: Creating and funding wallets');
-  console.log('========================================');
-
-  // Generate two new keypairs for our wallets
-  const walletA = Keypair.generate();
-  const walletB = Keypair.generate();
-
-  console.log('✓ Wallet A created');
-  console.log('  Public Key:', walletA.publicKey.toBase58());
-
-  console.log('\n✓ Wallet B created');
-  console.log('  Public Key:', walletB.publicKey.toBase58());
-
-  // Request airdrops for both wallets
-  console.log('\n📥 Requesting airdrops from Devnet faucet...');
-  await requestAirdrop(walletA.publicKey, 2);
-  await requestAirdrop(walletB.publicKey, 1);
-
-  console.log('\n💰 Final balances:');
-  await checkBalance(walletA.publicKey, 'Wallet A');
-  await checkBalance(walletB.publicKey, 'Wallet B');
-
-  return { walletA, walletB };
-}
-
-// ============================================================================
-// STEP 2: CREATE TOKEN MINT
-// ============================================================================
-
-async function step2_CreateMint(payer: Keypair) {
-  console.log('\n========================================');
-  console.log('STEP 2: Creating a new token mint');
-  console.log('========================================');
-
-  console.log('Configuration:');
-  console.log('  Decimals:', TOKEN_DECIMALS);
-  console.log('  Mint Authority:', payer.publicKey.toBase58());
-
-  // Create the token mint
-  const mint = await createMint(
-    connection,           // Connection to cluster
-    payer,                // Payer of the transaction
-    payer.publicKey,      // Account that will control minting
-    payer.publicKey,      // Account that can freeze token accounts
-    TOKEN_DECIMALS        // Number of decimals
-  );
-
-  console.log('\n✓ Token Mint Created!');
-  console.log('  Mint Address:', mint.toBase58());
-  console.log('  Explorer:', `https://explorer.solana.com/address/${mint.toBase58()}?cluster=devnet`);
-
-  return mint;
-}
-
-// ============================================================================
-// STEP 3: MINT 1000 TOKENS TO WALLET A
-// ============================================================================
-
-async function step3_MintTokens(
-  mint: PublicKey,
-  mintAuthority: Keypair,
-  destination: PublicKey
-) {
-  console.log('\n========================================');
-  console.log('STEP 3: Minting 1000 tokens to Wallet A');
-  console.log('========================================');
-
-  // Get or create the associated token account for Wallet A
-  console.log('Creating token account for Wallet A...');
-  const tokenAccount = await getOrCreateAssociatedTokenAccount(
-    connection,
-    mintAuthority,        // Payer
-    mint,                 // Token mint
-    destination           // Owner
-  );
-
-  console.log('  ✓ Token Account:', tokenAccount.address.toBase58());
-
-  // Mint tokens
-  const amount = MINT_AMOUNT * Math.pow(10, TOKEN_DECIMALS);
-
-  const signature = await mintTo(
-    connection,
-    mintAuthority,
-    mint,
-    tokenAccount.address,
-    mintAuthority,
-    amount
-  );
-
-  console.log(`\n✓ Minted ${MINT_AMOUNT} tokens!`);
-  console.log('  Transaction:', signature);
-
-  const balance = await getTokenBalance(tokenAccount.address);
-  console.log(`  Balance: ${balance} tokens`);
-
-  return tokenAccount;
-}
-
-// ============================================================================
-// STEP 4: TRANSFER 50 TOKENS FROM WALLET A TO WALLET B
-// ============================================================================
-
-async function step4_TransferTokens(
-  mint: PublicKey,
-  fromWallet: Keypair,
-  fromTokenAccount: PublicKey,
-  toWallet: PublicKey
-) {
-  console.log('\n========================================');
-  console.log('STEP 4: Transferring 50 tokens to Wallet B');
-  console.log('========================================');
-
-  console.log('Creating token account for Wallet B...');
-  const toTokenAccount = await getOrCreateAssociatedTokenAccount(
-    connection,
-    fromWallet,
-    mint,
-    toWallet
-  );
-
-  console.log('  ✓ Token Account:', toTokenAccount.address.toBase58());
-
-  // Transfer tokens
-  const amount = TRANSFER_AMOUNT * Math.pow(10, TOKEN_DECIMALS);
-
-  const signature = await transfer(
-    connection,
-    fromWallet,
-    fromTokenAccount,
-    toTokenAccount.address,
-    fromWallet,
-    amount
-  );
-
-  console.log(`\n✓ Transferred ${TRANSFER_AMOUNT} tokens!`);
-  console.log('  Transaction:', signature);
-
-  const balanceA = await getTokenBalance(fromTokenAccount);
-  const balanceB = await getTokenBalance(toTokenAccount.address);
-  console.log(`\n  Wallet A: ${balanceA} tokens`);
-  console.log(`  Wallet B: ${balanceB} tokens`);
-
-  return toTokenAccount;
-}
-
-// ============================================================================
-// STEP 5: BURN 100 TOKENS FROM WALLET A
-// ============================================================================
-
-async function step5_BurnTokens(
-  mint: PublicKey,
-  owner: Keypair,
-  tokenAccount: PublicKey
-) {
-  console.log('\n========================================');
-  console.log('STEP 5: Burning 100 tokens from Wallet A');
-  console.log('========================================');
-
-  const amount = BURN_AMOUNT * Math.pow(10, TOKEN_DECIMALS);
-
-  const signature = await burn(
-    connection,
-    owner,
-    tokenAccount,
-    mint,
-    owner,
-    amount
-  );
-
-  console.log(`✓ Burned ${BURN_AMOUNT} tokens!`);
-  console.log('  Transaction:', signature);
-
-  const balance = await getTokenBalance(tokenAccount);
-  console.log(`  Remaining balance: ${balance} tokens`);
-  console.log('  🔥 These tokens are permanently destroyed!');
-}
-
-// ============================================================================
-// STEP 6: DISABLE MINTING (REVOKE MINT AUTHORITY)
-// ============================================================================
-
-async function step6_DisableMinting(
-  mint: PublicKey,
-  currentAuthority: Keypair
-) {
-  console.log('\n========================================');
-  console.log('STEP 6: Disabling token minting');
-  console.log('========================================');
-
-  console.log('⚠️  Revoking mint authority permanently...');
-
-  const signature = await setAuthority(
-    connection,
-    currentAuthority,
-    mint,
-    currentAuthority,
-    AuthorityType.MintTokens,
-    null
-  );
-
-  console.log('✓ Mint authority revoked!');
-  console.log('  Transaction:', signature);
-  console.log('\n  Token supply is now FIXED forever');
-  console.log('  No one can mint new tokens');
-}
-
-// ============================================================================
-// MAIN EXECUTION
+// PROGRAM UTAMA
 // ============================================================================
 
 async function main() {
   console.log('\n╔════════════════════════════════════════════════════════╗');
-  console.log('║     SOLANA TOKEN WORKSHOP - @solana/web3.js           ║');
+  console.log('║          SOLANA TOKEN WORKSHOP - Lesson 2             ║');
   console.log('╚════════════════════════════════════════════════════════╝');
-  console.log('\n  Using: @solana/web3.js + @solana/spl-token\n');
 
-  try {
-    const { walletA, walletB } = await step1_CreateWallets();
-    const mint = await step2_CreateMint(walletA);
-    const tokenAccountA = await step3_MintTokens(mint, walletA, walletA.publicKey);
-    await step4_TransferTokens(mint, walletA, tokenAccountA.address, walletB.publicKey);
-    await step5_BurnTokens(mint, walletA, tokenAccountA.address);
-    await step6_DisableMinting(mint, walletA);
+  // ─────────────────────────────────────────────────────────────────────────
+  // Langkah 1 — Buat Wallet
+  // ─────────────────────────────────────────────────────────────────────────
+  // Keypair = pasangan kunci publik + privat.
+  // Public key  = alamat wallet, aman dibagikan ke siapa saja.
+  // Private key = kunci rahasia untuk menandatangani transaksi — jangan bocor!
+  console.log('\n--- Langkah 1: Buat Wallet ---');
 
-    console.log('\n╔════════════════════════════════════════════════════════╗');
-    console.log('║                 WORKSHOP COMPLETE! 🎉                  ║');
-    console.log('╚════════════════════════════════════════════════════════╝');
+  const walletA = Keypair.generate();
+  const walletB = Keypair.generate();
 
-    console.log('\n✅ What You Accomplished:');
-    console.log('  ✓ Created and funded wallets on Devnet');
-    console.log('  ✓ Created a new SPL token mint');
-    console.log('  ✓ Minted 1000 tokens to Wallet A');
-    console.log('  ✓ Transferred 50 tokens to Wallet B');
-    console.log('  ✓ Burned 100 tokens from Wallet A');
-    console.log('  ✓ Disabled minting permanently');
+  console.log('Wallet A:', walletA.publicKey.toBase58());
+  console.log('Wallet B:', walletB.publicKey.toBase58());
 
-    console.log('\n✨ All operations completed successfully!');
+  // Airdrop SOL agar wallet punya dana untuk membayar biaya transaksi.
+  // Airdrop hanya tersedia di Devnet/Testnet — tidak berlaku di mainnet.
+  console.log('\nMeminta airdrop SOL dari Devnet faucet...');
 
-  } catch (error) {
-    console.error('\n❌ Error:', error);
-    throw error;
-  }
+  const airdropSigA = await connection.requestAirdrop(walletA.publicKey, 2 * LAMPORTS_PER_SOL);
+  await connection.confirmTransaction(airdropSigA);
+  console.log('  Airdrop Wallet A berhasil');
+
+  const airdropSigB = await connection.requestAirdrop(walletB.publicKey, 1 * LAMPORTS_PER_SOL);
+  await connection.confirmTransaction(airdropSigB);
+  console.log('  Airdrop Wallet B berhasil');
+
+  console.log('\nSaldo SOL:');
+  await checkSolBalance(walletA.publicKey, 'Wallet A');
+  await checkSolBalance(walletB.publicKey, 'Wallet B');
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Langkah 2 — Buat Token Mint
+  // ─────────────────────────────────────────────────────────────────────────
+  // Token Mint = "pabrik" token. Ini adalah on-chain account yang menyimpan
+  // metadata token: siapa yang boleh mencetak, siapa yang boleh membekukan,
+  // dan berapa desimal presisinya.
+  //
+  // Mint Authority   = satu-satunya yang boleh mencetak (mintTo) token baru.
+  // Freeze Authority = bisa membekukan token account pengguna.
+  console.log('\n--- Langkah 2: Buat Token Mint ---');
+
+  const mint = await createMint(
+    connection,
+    walletA,            // Payer: yang membayar biaya pembuatan account
+    walletA.publicKey,  // Mint Authority: yang berhak mencetak token baru
+    walletA.publicKey,  // Freeze Authority: yang berhak membekukan akun
+    TOKEN_DECIMALS      // Desimal: 9 = presisi seperti SOL (0.000000001)
+  );
+
+  console.log('Mint Address:', mint.toBase58());
+  console.log('Explorer:', `https://explorer.solana.com/address/${mint.toBase58()}?cluster=devnet`);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Langkah 3 — Mint Token ke Wallet A
+  // ─────────────────────────────────────────────────────────────────────────
+  // Di Solana, token TIDAK disimpan langsung di wallet.
+  // Setiap wallet perlu "Associated Token Account" (ATA) untuk setiap jenis token.
+  // ATA = rekening tabungan khusus untuk satu jenis token tertentu.
+  //
+  // getOrCreateAssociatedTokenAccount akan membuat ATA jika belum ada,
+  // atau langsung pakai yang sudah ada — aman dipanggil berkali-kali.
+  console.log('\n--- Langkah 3: Mint Token ke Wallet A ---');
+
+  const tokenAccountA = await getOrCreateAssociatedTokenAccount(
+    connection,
+    walletA,            // Payer: yang membayar biaya pembuatan ATA
+    mint,               // Token mint yang akan ditampung di ATA ini
+    walletA.publicKey   // Owner: siapa pemilik ATA ini
+  );
+  console.log('Token Account A:', tokenAccountA.address.toBase58());
+
+  await mintTo(
+    connection,
+    walletA,                  // Payer
+    mint,                     // Token mint
+    tokenAccountA.address,    // Tujuan: ATA penerima token
+    walletA,                  // Mint Authority (harus punya private key)
+    MINT_AMOUNT * Math.pow(10, TOKEN_DECIMALS) // Jumlah dalam unit terkecil
+  );
+  console.log(`${MINT_AMOUNT} token berhasil dicetak!`);
+
+  console.log('Saldo token:');
+  await checkTokenBalance(tokenAccountA.address);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Langkah 4 — Transfer Token ke Wallet B
+  // ─────────────────────────────────────────────────────────────────────────
+  // Wallet B juga butuh ATA untuk token ini sebelum bisa menerima.
+  // Yang membayar biaya pembuatan ATA adalah pengirim (walletA) — bukan penerima.
+  // Ini pola umum di Solana: yang ingin kirim token, dia yang setup akun tujuan.
+  console.log('\n--- Langkah 4: Transfer Token ke Wallet B ---');
+
+  const tokenAccountB = await getOrCreateAssociatedTokenAccount(
+    connection,
+    walletA,            // Payer: walletA bayar pembuatan ATA milik walletB
+    mint,
+    walletB.publicKey   // Owner: walletB yang akan memiliki ATA ini
+  );
+  console.log('Token Account B:', tokenAccountB.address.toBase58());
+
+  await transfer(
+    connection,
+    walletA,                  // Payer & penandatangan transaksi
+    tokenAccountA.address,    // Sumber token
+    tokenAccountB.address,    // Tujuan token
+    walletA,                  // Owner dari token account sumber
+    TRANSFER_AMOUNT * Math.pow(10, TOKEN_DECIMALS)
+  );
+  console.log(`${TRANSFER_AMOUNT} token berhasil ditransfer!`);
+
+  console.log('Saldo token setelah transfer:');
+  await checkTokenBalance(tokenAccountA.address);
+  await checkTokenBalance(tokenAccountB.address);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Langkah 5 — Burn Token dari Wallet A
+  // ─────────────────────────────────────────────────────────────────────────
+  // Burn = menghancurkan token secara permanen dari peredaran.
+  // Token yang dibakar dikurangi dari total supply — tidak bisa dikembalikan.
+  // Digunakan dalam tokenomics: deflasi supply, fee burning, redeem mechanics.
+  console.log('\n--- Langkah 5: Burn Token dari Wallet A ---');
+
+  await burn(
+    connection,
+    walletA,                  // Payer
+    tokenAccountA.address,    // Token account yang tokennya akan dibakar
+    mint,                     // Token mint
+    walletA,                  // Owner token account
+    BURN_AMOUNT * Math.pow(10, TOKEN_DECIMALS)
+  );
+  console.log(`${BURN_AMOUNT} token berhasil dibakar!`);
+
+  console.log('Saldo token setelah burn:');
+  await checkTokenBalance(tokenAccountA.address);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Langkah 6 — Nonaktifkan Minting (Revoke Mint Authority)
+  // ─────────────────────────────────────────────────────────────────────────
+  // Dengan mengeset Mint Authority ke `null`, tidak ada yang bisa mencetak
+  // token baru lagi — termasuk kita sendiri. Supply menjadi TETAP selamanya.
+  //
+  // Ini digunakan proyek yang ingin membuktikan tidak ada inflasi tersembunyi.
+  // PERINGATAN: Tindakan ini tidak bisa dibalik!
+  console.log('\n--- Langkah 6: Nonaktifkan Minting ---');
+
+  await setAuthority(
+    connection,
+    walletA,                  // Payer & current authority
+    mint,                     // Target: token mint
+    walletA,                  // Current mint authority yang akan dilepas
+    AuthorityType.MintTokens, // Jenis otoritas yang dicabut
+    null                      // null = tidak ada pemilik baru = permanen
+  );
+  console.log('Mint authority berhasil dicabut!');
+  console.log('Supply token sekarang TETAP selamanya — tidak bisa dicetak lagi.');
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Ringkasan Akhir
+  // ─────────────────────────────────────────────────────────────────────────
+  console.log('\n╔════════════════════════════════════════════════════════╗');
+  console.log('║               WORKSHOP SELESAI!                       ║');
+  console.log('╚════════════════════════════════════════════════════════╝');
+  console.log(`\n  Token dicetak   : ${MINT_AMOUNT}`);
+  console.log(`  Token ditransfer: ${TRANSFER_AMOUNT} ke Wallet B`);
+  console.log(`  Token dibakar   : ${BURN_AMOUNT} dari Wallet A`);
+  console.log(`  Saldo Wallet A  : ${MINT_AMOUNT - TRANSFER_AMOUNT - BURN_AMOUNT} token`);
+  console.log(`  Saldo Wallet B  : ${TRANSFER_AMOUNT} token`);
+  console.log('\n  Semua operasi berhasil!');
 }
 
 main()
