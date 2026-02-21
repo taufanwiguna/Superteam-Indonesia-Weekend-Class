@@ -1,0 +1,4 @@
+node_modules/
+walletA.json
+walletB.json
+.env
