@@ -60,7 +60,7 @@ function main() {
   console.log('     (untuk menampilkan alamat wallet dengan rapi)');
   console.log('');
   console.log('  2. Isi Wallet A dengan SOL via faucet Devnet:');
-  console.log('     https://faucet.solana.com');
+  console.log('     Superstudy Faucet https://superstudy.fun/faucet');
   console.log('');
   console.log('  3. Setelah terisi, jalankan: npm start');
   console.log('─────────────────────────────────────────────────────────\n');

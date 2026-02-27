@@ -67,7 +67,7 @@ Menampilkan public key kedua wallet dalam format yang mudah di-copy-paste ke fau
 Kunjungi faucet Devnet Solana dan masukkan alamat **Wallet A**:
 
 ```
-https://faucet.solana.com
+Superstudy Faucet https://superstudy.fun/faucet
 ```
 
 Wallet A perlu SOL untuk membayar biaya transaksi (minting NFT, transfer, dll).

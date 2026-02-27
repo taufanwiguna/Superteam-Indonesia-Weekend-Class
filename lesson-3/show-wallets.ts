@@ -37,7 +37,7 @@ function main() {
   console.log('  Kunjungi faucet untuk mengisi SOL ke Wallet A');
   console.log('  sebelum menjalankan npm start:');
   console.log('');
-  console.log('  https://faucet.solana.com');
+  console.log('  Superstudy Faucet https://superstudy.fun/faucet');
   console.log('─────────────────────────────────────────────────────────\n');
 }
 
