@@ -9,7 +9,7 @@
  * Prasyarat:
  *   1. npm run generate   — buat wallets.json (satu kali saja)
  *   2. npm run show-wallets — tampilkan alamat untuk faucet
- *   3. Isi Wallet A via Superstudy Faucet https://superstudy.fun/faucet
+ *   3. Isi wallet pribadi via faucet, lalu transfer ke Wallet A — Superstudy Faucet https://superstudy.fun/faucet
  *   4. npm run workshop
  */
 

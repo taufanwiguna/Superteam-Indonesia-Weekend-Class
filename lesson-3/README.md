@@ -64,7 +64,7 @@ Menampilkan public key kedua wallet dalam format yang mudah di-copy-paste ke fau
 
 ### Step 2 — Isi Wallet A dengan SOL
 
-Kunjungi faucet Devnet Solana dan masukkan alamat **Wallet A**:
+Isi **wallet pribadi Anda** via faucet Devnet, lalu transfer SOL ke **Wallet A**:
 
 ```
 Superstudy Faucet https://superstudy.fun/faucet

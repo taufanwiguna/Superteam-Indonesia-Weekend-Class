@@ -34,7 +34,7 @@ function main() {
   console.log(`  → ${walletsData.walletB.publicKey}`);
 
   console.log('\n─────────────────────────────────────────────────────────');
-  console.log('  Kunjungi faucet untuk mengisi SOL ke Wallet A');
+  console.log('  Isi wallet pribadi via faucet, lalu transfer SOL ke Wallet A');
   console.log('  sebelum menjalankan npm start:');
   console.log('');
   console.log('  Superstudy Faucet https://superstudy.fun/faucet');
