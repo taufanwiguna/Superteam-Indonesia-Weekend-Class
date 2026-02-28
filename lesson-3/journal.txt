@@ -31,3 +31,11 @@ Update: Jika isMutable di-set true, kita bisa mengubah isi JSON ini di kemudian 
 Cek Saldo Wallet A: solana balance 2u8cXcZKWt4zKErLS5UVpFbxHVsWjFZm7TavSKL9egFp --url devnet
 Lihat Detail Mint: solana token 1457B62kaEZLQZMeD8AS3JVY4waJZ8Lnx1UGynGj6M1P --url devnet
 Konversi Key ke Base58: Menggunakan script node -e dengan library bs58.
+
+
+---
+### 🔗 Bukti Eksekusi (On-chain Evidence)
+NFT Membership berhasil dicetak di Solana Devnet:
+- Mint Address: 1457B62kaEZLQZMeD8AS3JVY4waJZ8Lnx1UGynGj6M1P
+- Explorer Link: https://explorer.solana.com/address/1457B62kaEZLQZMeD8AS3JVY4waJZ8Lnx1UGynGj6M1P?cluster=devnet
+- Status: Minting Sukses (Wallet A), Transfer dipelajari via Troubleshooting Error 0x39.
