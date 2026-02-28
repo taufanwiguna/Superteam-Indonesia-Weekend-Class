@@ -3,3 +3,7 @@ dist/
 
 # Berisi private key — JANGAN pernah di-commit!
 wallets.json
+=======
+node_modules/
+walletA.json
+walletB.json
