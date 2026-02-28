@@ -1,0 +1,33 @@
+📝 Jurnal Teknis: Solana NFT Membership (Metaplex Umi)
+1. Arsitektur Wallet & Autentikasi
+Format Keypair: Di Solana, Secret Key disimpan sebagai Uint8Array (deretan 64 angka). Namun, wallet seperti Phantom hanya menerima format Base58.
+Metaplex Umi Identity: Berbeda dengan web3.js biasa, Umi menggunakan sistem identity. Saat kita melakukan umi.use(keypairIdentity(umiKeypair)), kita menetapkan wallet tersebut sebagai pembayar biaya transaksi (Payer) sekaligus pemberi izin (Signer).
+
+2. Anatomi NFT di Solana (Metaplex Standard)
+NFT di Solana bukan sekadar "gambar", tapi gabungan dari 3 akun:
+Mint Account: Akun utama yang menyimpan alamat NFT (id unik).
+Metadata Account: Akun "on-chain" yang menyimpan Nama (name), Simbol (symbol), dan link JSON (uri).
+Master Edition Account: Akun yang memastikan NFT ini tidak bisa digandakan (jumlahnya tetap 1).
+
+3. Pentingnya Token Standard (Solusi Error 0x39)
+Ini adalah pelajaran terpenting hari ini:
+Programmable NFT (pNFT): Standar terbaru yang memungkinkan kreator mengatur royalti secara ketat. Ini adalah default di banyak fungsi Metaplex terbaru.
+Non-Fungible (Legacy): NFT standar biasa.
+Penyebab Error: Error 0x39 (Incorrect account owner) terjadi karena instruksi transferV1 mencoba memindahkan pNFT menggunakan logika NFT biasa.
+Solusi Teknis: Menambahkan tokenStandard: TokenStandard.NonFungible pada fungsi createNft untuk menyamakan "bahasa" antara saat minting dan saat transfer.
+
+4. Logika Smart Contract "Membership"
+Kita tidak butuh Smart Contract (Program) kustom untuk fitur membership sederhana. Logikanya cukup di sisi klien (Client-side):
+Setiap wallet punya ATA (Associated Token Account) khusus untuk NFT tersebut.
+Fungsi checkMembership bekerja dengan cara memanggil getAccount dari @solana/spl-token.
+Jika Number(info.amount) === 1, maka akses diberikan (User = MEMBER).
+
+5. Alur Kerja Off-Chain Metadata
+URI JSON: Link yang kita masukkan (GitHub/Arweave/IPFS) berisi file JSON.
+Visualisasi: Phantom Wallet akan membaca URI tersebut, mencari field "image", lalu mendownload gambar tersebut untuk ditampilkan di layar HP/Browser.
+Update: Jika isMutable di-set true, kita bisa mengubah isi JSON ini di kemudian hari (misal: gambar member level 1 berubah jadi level 2).
+
+🛠 Cheat Sheet Terminal:
+Cek Saldo Wallet A: solana balance 2u8cXcZKWt4zKErLS5UVpFbxHVsWjFZm7TavSKL9egFp --url devnet
+Lihat Detail Mint: solana token 1457B62kaEZLQZMeD8AS3JVY4waJZ8Lnx1UGynGj6M1P --url devnet
+Konversi Key ke Base58: Menggunakan script node -e dengan library bs58.

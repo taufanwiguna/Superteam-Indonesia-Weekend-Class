@@ -163,13 +163,13 @@ async function main() {
   const mintSigner = generateSigner(umi);
 
   await createNft(umi, {
-    mint: mintSigner,
-    name: 'Membership NFT',
-    symbol: 'MEMBER',
-    uri: NFT_METADATA_URI,
-    sellerFeeBasisPoints: percentAmount(0),
-    isMutable: false,
-  }).sendAndConfirm(umi);
+  mint: mintSigner,
+  name: 'Taufan Wiguna',
+  symbol: 'TFN',
+  uri: NFT_METADATA_URI,
+  sellerFeeBasisPoints: percentAmount(0),
+  isMutable: false,
+ }).sendAndConfirm(umi);
 
   // toWeb3JsPublicKey mengonversi Umi PublicKey → web3.js PublicKey
   // diperlukan agar bisa dipakai oleh fungsi checkMembership (@solana/spl-token)

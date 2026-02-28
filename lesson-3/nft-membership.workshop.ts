@@ -136,8 +136,8 @@ async function main() {
   // TODO: Mint NFT:
   //   await createNft(umi, {
   //     mint: mintSigner,
-  //     name: 'Membership NFT',
-  //     symbol: 'MEMBER',
+  //     name: 'Taufan Wiguna NFT',
+  //     symbol: 'TFN',
   //     uri: NFT_METADATA_URI,
   //     sellerFeeBasisPoints: percentAmount(0),
   //     isMutable: false,
